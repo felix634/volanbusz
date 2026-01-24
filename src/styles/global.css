@@ -1,0 +1,60 @@
+/* src/styles/global.css */
+@import "tailwindcss";
+
+/* Téma beállítások Tailwind 4 stílusban */
+@theme {
+  --font-sans: 'Montserrat', sans-serif;
+  
+  --color-volan-yellow: #fbbf24;
+  --color-volan-dark: #1e293b;
+
+  --animate-float: float 6s ease-in-out infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+  }
+}
+
+/* 3D Kártya Forgatás osztályok (Utility-k) */
+@utility perspective-1000 {
+  perspective: 1000px;
+}
+
+@utility transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+@utility backface-hidden {
+  backface-visibility: hidden;
+}
+
+@utility rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Alap beállítások */
+html {
+  scroll-behavior: smooth;
+  background-color: #020617; /* Slate-950 */
+  color: white;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* Egyedi Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-volan-yellow);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d97706;
+}
