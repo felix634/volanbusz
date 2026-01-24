@@ -1,0 +1,25 @@
+---
+// src/pages/game.astro
+import Layout from '../layouts/Layout.astro';
+import BusGame from '../components/BusGame.jsx';
+---
+
+<Layout title="Volánbusz Kaland - Titkos Játék">
+  <main class="h-screen w-full flex flex-col justify-center items-center bg-slate-950 overflow-hidden relative">
+    
+    <a href="/" class="absolute top-4 left-4 text-yellow-500 flex items-center gap-2 hover:underline z-20">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+          </svg>
+        Vissza a telephelyre
+    </a>
+
+    <h1 class="text-3xl md:text-5xl font-bold text-yellow-500 mb-8 uppercase tracking-widest text-center px-4">
+        Volán Kaland
+    </h1>
+
+    <BusGame client:only="react" />
+    
+    <p class="text-slate-500 mt-4 text-sm">Ugrás: SPACE vagy Kattintás/Érintés</p>
+  </main>
+</Layout>

@@ -3,13 +3,44 @@ import Layout from '../layouts/Layout.astro';
 import MemberCard from '../components/MemberCard.jsx';
 import Gatekeeper from '../components/Gatekeeper.jsx';
 
+// ADATOK
 const members = [
-  { name: "Árpi", imgNormal: "/arpi.jpg", imgFunny: "/arpi_funny.jpg", desc: "A sofőrök réme." },
-  { name: "Félix", imgNormal: "/felix.jpg", imgFunny: "/felix_funny.jpg", desc: "Csak egy megállót akartam..." },
-  { name: "Zalán", imgNormal: "/zalan.jpg", imgFunny: "/zalan_funny.jpg", desc: "Mikor indulunk már?" },
-  { name: "Bence", imgNormal: "/bence.jpg", imgFunny: "/bence_funny.jpg", desc: "Bérletet felmutatni!" },
-  { name: "Dani", imgNormal: "/dani.jpg", imgFunny: "/dani_funny.jpg", desc: "Az igazi kalauz." },
-  { name: "Boti", imgNormal: "/boti.jpg", imgFunny: "/boti_funny.jpg", desc: "A hátsó ülés császára." },
+  { 
+    name: "Árpi", 
+    imgNormal: "/arpi.jpg", 
+    imgFunny: "/arpi_funny.jpg", 
+    desc: "A sofőrök réme." 
+  },
+  { 
+    name: "Félix", 
+    imgNormal: "/felix.jpg", 
+    imgFunny: "/felix_funny.jpg", 
+    desc: "Csak egy megállót akartam..." 
+  },
+  { 
+    name: "Zalán", 
+    imgNormal: "/zalan.jpg", 
+    imgFunny: "/zalan_funny.jpg", 
+    desc: "Mikor indulunk már?" 
+  },
+  { 
+    name: "Bence", 
+    imgNormal: "/bence.jpg", 
+    imgFunny: "/bence_funny.jpg", 
+    desc: "Bérletet felmutatni!" 
+  },
+  { 
+    name: "Dani", 
+    imgNormal: "/dani.jpg", 
+    imgFunny: "/dani_funny.jpg", 
+    desc: "Az igazi kalauz." 
+  },
+  { 
+    name: "Boti", 
+    imgNormal: "/boti.jpg", 
+    imgFunny: "/boti_funny.jpg", 
+    desc: "A hátsó ülés császára." 
+  },
 ];
 ---
 
@@ -62,15 +93,22 @@ const members = [
       </div>
     </section>
 
-    <footer class="py-10 text-center border-t border-slate-800 text-slate-500 px-4 text-sm md:text-base">
+    <footer class="py-10 border-t border-slate-800 text-slate-500 px-4 text-sm md:text-base flex flex-col items-center relative">
       <p>&copy; {new Date().getFullYear()} Volánbusz Nyrt. Minden jog fenntartva.</p>
       <p class="text-xs mt-2 opacity-50">Nem állunk kapcsolatban a valódi Volánbusszal (sajnos). A Lisan al-Gaib figyel téged.</p>
+      
+      <a href="/game" class="mt-4 opacity-30 hover:opacity-100 transition-opacity duration-300 p-2" title="Indul a járat...">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-12 h-12 text-yellow-500">
+          <path d="M4.5 3.75a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V6.75a3 3 0 0 0-3-3h-15ZM18.75 7.5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-.75.75H16.5a.75.75 0 0 1-.75-.75v-1.5a.75.75 0 0 1 .75-.75h2.25ZM5.25 7.5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-.75.75H3a.75.75 0 0 1-.75-.75v-1.5a.75.75 0 0 1 .75-.75h2.25ZM3.75 18a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0ZM17.25 18a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z" />
+        </svg>      
+      </a>
     </footer>
 
   </main>
 </Layout>
 
 <style>
+  /* Csak ehhez az oldalhoz tartozó egyedi belépő animáció */
   @keyframes fade-in-up {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
