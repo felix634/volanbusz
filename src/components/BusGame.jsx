@@ -7,15 +7,12 @@ export default function BusGame() {
   const [isJumping, setIsJumping] = useState(false);
   const [score, setScore] = useState(0);
 
-  // Referenciák a DOM elemekhez, hogy mérni tudjuk a pozíciójukat az ütközéshez
   const busRef = useRef(null);
   const obstacleRef = useRef(null);
 
   const jump = useCallback(() => {
-    // Csak akkor ugorhatunk, ha megy a játék és épp nem ugrunk
     if (!isJumping && isGameRunning && !isGameOver) {
       setIsJumping(true);
-      // Az ugrás animáció 500ms hosszú (lásd lent a CSS-t), utána visszaállítjuk
       setTimeout(() => setIsJumping(false), 500);
     }
   }, [isJumping, isGameRunning, isGameOver]);
@@ -26,7 +23,6 @@ export default function BusGame() {
     setScore(0);
   };
 
-  // Billentyűzet figyelés (SPACE)
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.code === 'Space') {
@@ -41,34 +37,32 @@ export default function BusGame() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [jump, isGameRunning, isGameOver]);
 
-
-  // A JÁTÉK LOOP & ÜTKÖZÉS ÉRZÉKELÉS
   useEffect(() => {
     let collisionInterval;
     let scoreInterval;
 
     if (isGameRunning && !isGameOver) {
-      // Pontszám növelése másodpercenként
       scoreInterval = setInterval(() => {
         setScore(prev => prev + 1);
       }, 1000);
 
-      // Ütközés figyelése nagyon gyakran (10ms)
       collisionInterval = setInterval(() => {
         const bus = busRef.current;
         const obstacle = obstacleRef.current;
 
         if (bus && obstacle) {
-          // Lekérjük az elemek pontos helyét a képernyőn
           const busRect = bus.getBoundingClientRect();
           const obstacleRect = obstacle.getBoundingClientRect();
 
-          // Egyszerű téglalap ütközés logika
+          // Kicsit engedékenyebb ütközésvizsgálat (inset)
+          // Hogy ne halj meg ha csak 1 pixellel súrolod
+          const buffer = 4; 
+          
           const isColliding = !(
-            busRect.right < obstacleRect.left ||
-            busRect.left > obstacleRect.right ||
-            busRect.bottom < obstacleRect.top ||
-            busRect.top > obstacleRect.bottom
+            busRect.right - buffer < obstacleRect.left + buffer ||
+            busRect.left + buffer > obstacleRect.right - buffer ||
+            busRect.bottom - buffer < obstacleRect.top + buffer ||
+            busRect.top + buffer > obstacleRect.bottom - buffer
           );
 
           if (isColliding) {
@@ -88,14 +82,12 @@ export default function BusGame() {
   return (
     <div 
         className="relative w-full max-w-2xl h-64 border-b-4 border-slate-700 bg-slate-900/50 overflow-hidden touch-none select-none" 
-        onClick={jump} // Mobilon érintésre is ugorjon
+        onClick={jump}
     >
-      {/* PONTYSZÁM */}
       <div className="absolute top-2 right-4 text-yellow-500 font-mono text-xl z-10">
         Score: {score.toString().padStart(4, '0')}
       </div>
 
-      {/* START / GAME OVER SCREEN */}
       {(!isGameRunning || isGameOver) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 z-20 text-white">
           {isGameOver ? (
@@ -123,7 +115,6 @@ export default function BusGame() {
             ${isGameOver ? 'bg-red-500 border-red-700' : ''}
         `}
       >
-        {/* Kis ablakok és kerekek, hogy busznak nézzen ki */}
         <div className="flex gap-1 absolute top-1 left-1">
             <div className="w-3 h-3 bg-blue-300 rounded-sm"></div>
             <div className="w-3 h-3 bg-blue-300 rounded-sm"></div>
@@ -134,14 +125,13 @@ export default function BusGame() {
         <span className="text-[8px] font-bold text-slate-900 mt-4 ml-2">VOLÁN</span>
       </div>
 
-      {/* AZ AKADÁLY (Kocka) */}
+      {/* AZ AKADÁLY (Kocka) - KISEBB LETT! */}
       <div
         ref={obstacleRef}
-        // Ha megy a játék, rátesszük a mozgó animációt. Ha vége, megállítjuk.
-        className={`absolute bottom-0 -right-8 w-8 h-10 bg-red-700 rounded-sm border-2 border-red-900
+        // w-6 (24px) és h-8 (32px) - sokkal barátibb méret
+        className={`absolute bottom-0 -right-8 w-6 h-8 bg-red-700 rounded-sm border-2 border-red-900
             ${isGameRunning ? 'animate-obstacle-move' : ''}
         `}
-        // Ha vége a játéknak, "lefagyasztjuk" az animációt ott, ahol épp tart
         style={{ animationPlayState: isGameRunning ? 'running' : 'paused' }}
       ></div>
     </div>
