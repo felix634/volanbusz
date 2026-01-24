@@ -1,8 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import MemberCard from '../components/MemberCard.jsx';
+import Gatekeeper from '../components/Gatekeeper.jsx';
 
-// ADATOK - Itt tudod átírni a szövegeket
+// ADATOK - Itt tudod szerkeszteni a szövegeket és a képek neveit
 const members = [
   { 
     name: "Árpi", 
@@ -44,9 +45,12 @@ const members = [
 ---
 
 <Layout title="Volánbusz Nyrt.">
+  
+  <Gatekeeper client:load />
+
   <main class="relative">
     
-    <section class="h-screen flex flex-col items-center justify-center relative overflow-hidden">
+    <section class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden py-20">
       <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-yellow-600/20 via-slate-950 to-slate-950 z-0"></div>
       
       <div class="z-10 text-center px-4 animate-fade-in-up">
@@ -56,15 +60,19 @@ const members = [
         <p class="text-xl md:text-2xl text-slate-400 mb-10 max-w-2xl mx-auto">
           A hivatalos baráti társaság, ahol a menetrend csak tájékoztató jellegű.
         </p>
-        <a href="#csapat" class="px-8 py-4 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold rounded-full transition-all hover:scale-110 shadow-[0_0_20px_rgba(234,179,8,0.5)]">
+        <a href="#csapat" class="inline-block px-8 py-4 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold rounded-full transition-all hover:scale-110 shadow-[0_0_20px_rgba(234,179,8,0.5)]">
           ISMERD MEG A CSAPATOT
         </a>
       </div>
     </section>
 
     <section class="py-20 px-4 bg-slate-900/50">
-        <div class="max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 rotate-1 hover:rotate-0 transition-all duration-700">
-             <img src="/group.jpg" alt="A Volánbusz Nyrt. Csapata" class="w-full h-auto object-cover grayscale hover:grayscale-0 transition-all duration-1000" />
+        <div class="max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 rotate-1 hover:rotate-0 transition-all duration-700 group">
+            <img 
+              src="/group.jpg" 
+              alt="A Volánbusz Nyrt. Csapata" 
+              class="w-full h-auto object-cover grayscale group-hover:grayscale-0 transition-all duration-1000" 
+            />
         </div>
     </section>
 
@@ -75,7 +83,7 @@ const members = [
       
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 justify-items-center">
         {members.map((member) => (
-          /* client:visible kell, hogy a React működjön, amikor odagörgetsz */
+          /* client:visible kell, hogy a kártya interaktív legyen */
           <MemberCard client:visible 
             name={member.name} 
             imgNormal={member.imgNormal} 
@@ -86,23 +94,16 @@ const members = [
       </div>
     </section>
 
-    <footer class="py-10 text-center border-t border-slate-800 text-slate-500">
-      <p>&copy; {new Date().getFullYear()} Volánbusz Nyrt. Minden jog fenntartva. | Nem állunk kapcsolatban a valódi Volánbusszal (sajnos).</p>
+    <footer class="py-10 text-center border-t border-slate-800 text-slate-500 px-4">
+      <p>&copy; {new Date().getFullYear()} Volánbusz Nyrt. Minden jog fenntartva.</p>
+      <p class="text-xs mt-2 opacity-50">Nem állunk kapcsolatban a valódi Volánbusszal (sajnos). A Lisan al-Gaib figyel téged.</p>
     </footer>
 
   </main>
 </Layout>
 
 <style>
-  /* Extra CSS a 3D hatáshoz a React komponenshez szükséges segédosztályok */
-  .perspective-1000 {
-    perspective: 1000px;
-  }
-  .backface-hidden {
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-  }
-  
+  /* Csak ehhez az oldalhoz tartozó egyedi animáció */
   @keyframes fade-in-up {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
