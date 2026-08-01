@@ -9,7 +9,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
    ============================================================ */
 const SEGMENT_LENGTH = 200;      // egy útszelet hossza (világ egység)
 const RUMBLE_LENGTH = 3;         // hány szelet egy csík
-const ROAD_WIDTH = 3000;         // fél útszélesség (szélesebb út)
+const ROAD_WIDTH = 3800;         // fél útszélesség (széles út)
 const LANES = 2;
 const DRAW_DISTANCE = 180;       // hány szeletet rajzolunk előre
 const CAMERA_HEIGHT = 1650;      // a sofőr szemmagassága (busz => magas)
@@ -54,15 +54,51 @@ const COLORS = {
   dark: { road: '#3b4152', grass: '#265237', rumble: '#e2e8f0', lane: null },
 };
 
-const STOPS = [
-  'Telephely',
-  'Petőfi utca',
-  'Kossuth tér',
-  'Városi Kórház',
-  'Gimnázium',
-  'Ipari Park',
-  'Nagyállomás',
-  'Végállomás',
+/* --- választható járatok --- */
+const ROUTES = [
+  {
+    id: 1,
+    name: '1-es járat',
+    subtitle: 'Városi kör',
+    desc: 'Sok megálló, enyhe kanyarok, sűrű beépítés.',
+    seed: 1978,
+    curve: 1,
+    hill: 1,
+    town: 1.15, // ennyire sűrű a beépítés
+    stops: ['Telephely', 'Petőfi utca', 'Kossuth tér', 'Városi Kórház', 'Gimnázium', 'Ipari Park', 'Nagyállomás', 'Végállomás'],
+  },
+  {
+    id: 5,
+    name: '5-ös járat',
+    subtitle: 'Külváros',
+    desc: 'Rövidebb, de kanyargósabb járat a lakótelep felé.',
+    seed: 50421,
+    curve: 1.5,
+    hill: 0.7,
+    town: 0.85,
+    stops: ['Telephely', 'Rákóczi tér', 'Piac', 'Sportpálya', 'Vásárcsarnok', 'Lakótelep', 'Végállomás'],
+  },
+  {
+    id: 9,
+    name: '9-es járat',
+    subtitle: 'Hegyvidék',
+    desc: 'Hosszú, dombos szerpentin, ritka beépítés.',
+    seed: 909090,
+    curve: 1.35,
+    hill: 2.1,
+    town: 0.5,
+    stops: [
+      'Telephely',
+      'Szerpentin alsó',
+      'Kilátó',
+      'Erdei iskola',
+      'Menedékház',
+      'Hegytető',
+      'Turistaház',
+      'Völgyállomás',
+      'Végállomás',
+    ],
+  },
 ];
 
 const CAR_COLORS = ['#ef4444', '#3b82f6', '#e2e8f0', '#22c55e', '#f97316', '#a855f7', '#0ea5e9'];
@@ -73,6 +109,8 @@ const OBJ = {
   bush: { halfW: 0, depth: 0, h: 0, crownR: 520, crownY: 460, hit: 0 },
   lamp: { halfW: 70, depth: 140, h: 3400, hit: 240 },
   house: { halfW: 1800, depth: 3800, h: 2000, roof: 1000, hit: 1800 },
+  block: { halfW: 2400, depth: 4200, h: 6200, hit: 2400 },   // panelház
+  shop: { halfW: 2600, depth: 3000, h: 2400, hit: 2600 },    // üzlet/csarnok
   sign: { halfW: 60, depth: 120, h: 1700, panelW: 460, panelH: 720, hit: 420 },
   shelter: { halfW: 1500, depth: 1400, h: 1600, hit: 1500 },
 };
@@ -131,8 +169,9 @@ function project(p, cameraX, cameraY, cameraZ, width, height) {
 /* ============================================================
    PÁLYAÉPÍTÉS
    ============================================================ */
-function buildTrack() {
-  const rnd = mulberry32(1978);
+function buildTrack(route) {
+  const rnd = mulberry32(route.seed);
+  const town = route.town;
   const segments = [];
   const stops = [];
 
@@ -165,6 +204,18 @@ function buildTrack() {
   }
 
   // díszlet a szakasz mentén
+  const building = (side, dist) => {
+    const r = rnd();
+    const type = r < 0.42 ? 'house' : r < 0.72 ? 'block' : 'shop';
+    return {
+      type,
+      offset: side * dist,
+      shade: rnd(),
+      scale: 0.85 + rnd() * 0.5,
+      floors: 3 + Math.floor(rnd() * 5),
+    };
+  };
+
   function decorate(from, to) {
     for (let n = from; n < to; n++) {
       if (n % 3 !== 0) continue;
@@ -172,23 +223,27 @@ function buildTrack() {
       if (r < 0.4) segments[n].sprites.push({ type: rnd() < 0.7 ? 'tree' : 'bush', offset: -(1.35 + rnd() * 1.9) });
       if (r > 0.65) segments[n].sprites.push({ type: rnd() < 0.7 ? 'tree' : 'bush', offset: 1.35 + rnd() * 1.9 });
       if (n % 27 === 0) segments[n].sprites.push({ type: 'lamp', offset: -1.16 });
-      if (n % 54 === 0) segments[n].sprites.push({ type: 'house', offset: 2.9 + rnd(), shade: rnd() });
-      if (n % 70 === 0) segments[n].sprites.push({ type: 'house', offset: -(2.9 + rnd()), shade: rnd() });
+      // épületek: két sorban, a járat "beépítettsége" szerint
+      if (n % Math.round(21 / town) === 0) segments[n].sprites.push(building(1, 2.7 + rnd() * 0.9));
+      if (n % Math.round(26 / town) === 0) segments[n].sprites.push(building(-1, 2.7 + rnd() * 0.9));
+      if (n % Math.round(47 / town) === 0) segments[n].sprites.push(building(rnd() < 0.5 ? 1 : -1, 4.4 + rnd() * 1.6));
     }
   }
 
   addRoad(20, 60, 20, 0, 0); // rajtszakasz
 
-  STOPS.forEach((name, i) => {
+  route.stops.forEach((name, i) => {
     const from = segments.length;
 
-    // változatos szakasz a megállók között
+    // változatos szakasz a megállók között (járatonként eltérő jelleggel)
     const kind = Math.floor(rnd() * 4);
     const dir = rnd() < 0.5 ? -1 : 1;
+    const cv = route.curve;
+    const hl = route.hill;
     if (kind === 0) addRoad(60, 200, 60, 0, 0);
-    else if (kind === 1) addRoad(70, 160, 70, dir * (2 + rnd() * 3), 0);
-    else if (kind === 2) addRoad(70, 160, 70, 0, dir * (900 + rnd() * 1200));
-    else addRoad(70, 150, 70, dir * (2 + rnd() * 2.5), dir * (600 + rnd() * 900));
+    else if (kind === 1) addRoad(70, 160, 70, dir * (2 + rnd() * 3) * cv, 0);
+    else if (kind === 2) addRoad(70, 160, 70, 0, dir * (900 + rnd() * 1200) * hl);
+    else addRoad(70, 150, 70, dir * (2 + rnd() * 2.5) * cv, dir * (600 + rnd() * 900) * hl);
 
     // ráfutó egyenes + sík megállósáv
     addRoad(50, 90, 50, 0, 0);
@@ -204,7 +259,7 @@ function buildTrack() {
       done: false,
       missed: false,
       quality: null,
-      last: i === STOPS.length - 1,
+      last: i === route.stops.length - 1,
     };
     stops.push(stop);
 
@@ -341,6 +396,7 @@ function renderSegment(ctx, W, x1, y1, w1, x2, y2, w2, fog, color, seg) {
 // ox = oldalirányú eltolás (világ egység), h = magasság az út felett.
 const NEAR_CLIP = 700;   // ennél közelebbi pontot nem vetítünk (különben óriási poligonok)
 const OBJ_NEAR = 2100;   // ennél közelebbi tárgyat egészben kihagyunk (már a kabin mellett van)
+const ONCOMING_NEAR = 6000; // a szembejövőket előbb vágjuk, különben elmossák a fél képet
 function pt(s, base, z, ox, h, W) {
   if (z - s.position < NEAR_CLIP) return null;
   const idx = Math.floor(z / SEGMENT_LENGTH);
@@ -410,16 +466,24 @@ function ellipse(ctx, cx, cy, rx, ry, color) {
   ctx.fill();
 }
 
-function fogPatch(ctx, s, base, W, z, cx, halfW, hTop, fog) {
-  if (fog >= 0.985) return;
-  const a = pt(s, base, z, cx - halfW * 2.2, 0, W);
-  const b = pt(s, base, z, cx + halfW * 2.2, hTop * 1.15, W);
-  if (!a || !b) return;
-  if (Math.abs(a.x) > COORD_LIMIT || Math.abs(b.x) > COORD_LIMIT || Math.abs(a.y) > COORD_LIMIT) return;
-  ctx.globalAlpha = 1 - fog;
-  ctx.fillStyle = COLORS.fog;
-  ctx.fillRect(a.x, b.y, b.x - a.x, a.y - b.y);
-  ctx.globalAlpha = 1;
+// A köd nem külön téglalappal készül (az kirajzolta a tárgyak körvonalát),
+// hanem magukat a színeket keverjük a köd színéhez a távolság szerint.
+const FOG_RGB = [125, 154, 181]; // COLORS.fog
+const fogCache = new Map();
+function fogMix(hex, fog) {
+  if (fog >= 0.995) return hex;
+  const q = Math.round(fog * 50) / 50;
+  const key = hex + '|' + q;
+  let v = fogCache.get(key);
+  if (v) return v;
+  const n = parseInt(hex.slice(1), 16);
+  const t = 1 - q;
+  const r = Math.round(((n >> 16) & 255) * q + FOG_RGB[0] * t);
+  const g = Math.round(((n >> 8) & 255) * q + FOG_RGB[1] * t);
+  const b = Math.round((n & 255) * q + FOG_RGB[2] * t);
+  v = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  fogCache.set(key, v);
+  return v;
 }
 
 /* --- díszletelemek --- */
@@ -430,19 +494,20 @@ function drawScenery(ctx, s, base, W, camX, seg, sp, fog) {
   if (z - s.position < OBJ_NEAR) return;
   const near = pt(s, base, z, cx, 0, W);
   if (!near) return;
-  const px = near.scale * W; // méretarány a részletességhez
+  const px = near.scale * W;       // méretarány a részletességhez
+  const sc = sp.scale || 1;        // példányonkénti méretszorzó
+  const F = (c) => fogMix(c, fog); // a köd a színben van, nem külön téglalapban
 
   switch (sp.type) {
     case 'tree': {
-      // árnyék
-      ellipse(ctx, near.x, near.y, near.scale * o.crownR * W * 0.5, near.scale * o.crownR * W * 0.16, 'rgba(2,6,23,0.28)');
-      box(ctx, s, base, W, camX, z, z + o.depth, cx, o.halfW, 0, o.h, '#4a3524');
-      const c = pt(s, base, z + o.depth / 2, cx, o.crownY, W);
+      ellipse(ctx, near.x, near.y, near.scale * o.crownR * W * 0.5, near.scale * o.crownR * W * 0.16, 'rgba(2,6,23,' + 0.3 * fog + ')');
+      box(ctx, s, base, W, camX, z, z + o.depth, cx, o.halfW, 0, o.h * sc, F('#4a3524'));
+      const c = pt(s, base, z + o.depth / 2, cx, o.crownY * sc, W);
       if (c) {
-        const r = c.scale * o.crownR * W * 0.5;
-        ellipse(ctx, c.x, c.y + r * 0.25, r * 0.95, r * 0.9, '#1b4531');
-        ellipse(ctx, c.x - r * 0.12, c.y - r * 0.05, r * 0.82, r * 0.8, '#256b45');
-        ellipse(ctx, c.x - r * 0.3, c.y - r * 0.3, r * 0.45, r * 0.42, '#3d8a5c');
+        const r = c.scale * o.crownR * sc * W * 0.5;
+        ellipse(ctx, c.x, c.y + r * 0.25, r * 0.95, r * 0.9, F('#1b4531'));
+        ellipse(ctx, c.x - r * 0.12, c.y - r * 0.05, r * 0.82, r * 0.8, F('#256b45'));
+        ellipse(ctx, c.x - r * 0.3, c.y - r * 0.3, r * 0.45, r * 0.42, F('#3d8a5c'));
       }
       break;
     }
@@ -450,37 +515,39 @@ function drawScenery(ctx, s, base, W, camX, seg, sp, fog) {
       const c = pt(s, base, z, cx, o.crownY, W);
       if (c) {
         const r = c.scale * o.crownR * W * 0.5;
-        ellipse(ctx, c.x, c.y + r * 0.2, r, r * 0.8, '#1f5a3c');
-        ellipse(ctx, c.x - r * 0.2, c.y - r * 0.1, r * 0.6, r * 0.5, '#2f7a52');
+        ellipse(ctx, c.x, c.y + r * 0.2, r, r * 0.8, F('#1f5a3c'));
+        ellipse(ctx, c.x - r * 0.2, c.y - r * 0.1, r * 0.6, r * 0.5, F('#2f7a52'));
       }
       break;
     }
     case 'lamp': {
       const dir = cx < 0 ? 1 : -1; // az út felé nyúló kar
-      box(ctx, s, base, W, camX, z, z + o.depth, cx, o.halfW, 0, o.h, '#94a3b8', { sideShade: 0.7 });
+      box(ctx, s, base, W, camX, z, z + o.depth, cx, o.halfW, 0, o.h, F('#94a3b8'), { sideShade: 0.7 });
       if (px > 0.06) {
-        box(ctx, s, base, W, camX, z, z + o.depth, cx + dir * 430, 500, o.h - 130, o.h, '#94a3b8', { topShade: 1.1 });
-        box(ctx, s, base, W, camX, z - 40, z + o.depth + 40, cx + dir * 900, 260, o.h - 260, o.h - 120, '#e2e8f0', {
+        box(ctx, s, base, W, camX, z, z + o.depth, cx + dir * 430, 500, o.h - 130, o.h, F('#94a3b8'), { topShade: 1.1 });
+        box(ctx, s, base, W, camX, z - 40, z + o.depth + 40, cx + dir * 900, 260, o.h - 260, o.h - 120, F('#e2e8f0'), {
           topShade: 1.05,
         });
       }
       break;
     }
     case 'house': {
-      const wall = sp.shade > 0.5 ? '#64748b' : '#7c6f64';
-      const b = box(ctx, s, base, W, camX, z, z + o.depth, cx, o.halfW, 0, o.h, wall, { sideShade: 0.6 });
-      // tetőgerinc
-      const ridgeN = pt(s, base, z, cx, o.h + o.roof, W);
-      const ridgeF = pt(s, base, z + o.depth, cx, o.h + o.roof, W);
-      const eaveNL = pt(s, base, z, cx - o.halfW * 1.12, o.h, W);
-      const eaveNR = pt(s, base, z, cx + o.halfW * 1.12, o.h, W);
-      const eaveFL = pt(s, base, z + o.depth, cx - o.halfW * 1.12, o.h, W);
-      const eaveFR = pt(s, base, z + o.depth, cx + o.halfW * 1.12, o.h, W);
+      const hw = o.halfW * sc;
+      const dp = o.depth * sc;
+      const ht = o.h * sc;
+      const rf = o.roof * sc;
+      const wall = sp.shade > 0.5 ? '#8a8177' : '#9a8f83';
+      box(ctx, s, base, W, camX, z, z + dp, cx, hw, 0, ht, F(wall), { sideShade: 0.68 });
+      const ridgeN = pt(s, base, z, cx, ht + rf, W);
+      const ridgeF = pt(s, base, z + dp, cx, ht + rf, W);
+      const eaveNL = pt(s, base, z, cx - hw * 1.12, ht, W);
+      const eaveNR = pt(s, base, z, cx + hw * 1.12, ht, W);
+      const eaveFL = pt(s, base, z + dp, cx - hw * 1.12, ht, W);
+      const eaveFR = pt(s, base, z + dp, cx + hw * 1.12, ht, W);
       if (ridgeN && ridgeF && eaveNL && eaveNR && eaveFL && eaveFR) {
-        quad(ctx, eaveNL, eaveFL, ridgeF, ridgeN, '#7f1d1d');
-        quad(ctx, eaveNR, eaveFR, ridgeF, ridgeN, shade('#7f1d1d', 1.35));
-        // oromfal
-        ctx.fillStyle = shade('#7f1d1d', 0.8);
+        quad(ctx, eaveNL, eaveFL, ridgeF, ridgeN, F('#7f2b23'));
+        quad(ctx, eaveNR, eaveFR, ridgeF, ridgeN, shade(F('#7f2b23'), 1.3));
+        ctx.fillStyle = shade(F(wall), 1.05);
         ctx.beginPath();
         ctx.moveTo(eaveNL.x, eaveNL.y);
         ctx.lineTo(eaveNR.x, eaveNR.y);
@@ -488,78 +555,124 @@ function drawScenery(ctx, s, base, W, camX, seg, sp, fog) {
         ctx.closePath();
         ctx.fill();
       }
-      // ablakok a közeli falon
-      if (b && px > 0.05) {
+      if (px > 0.05) {
         for (let i = -1; i <= 1; i += 2) {
-          const wl = pt(s, base, z, cx + i * o.halfW * 0.45 - 300, 900, W);
-          const wr = pt(s, base, z, cx + i * o.halfW * 0.45 + 300, 900, W);
-          const tl = pt(s, base, z, cx + i * o.halfW * 0.45 - 300, 1550, W);
-          const tr = pt(s, base, z, cx + i * o.halfW * 0.45 + 300, 1550, W);
-          quad(ctx, wl, wr, tr, tl, 'rgba(251,191,36,0.75)');
+          const wl = pt(s, base, z, cx + i * hw * 0.45 - 300, ht * 0.45, W);
+          const wr = pt(s, base, z, cx + i * hw * 0.45 + 300, ht * 0.45, W);
+          const tl = pt(s, base, z, cx + i * hw * 0.45 - 300, ht * 0.78, W);
+          const tr = pt(s, base, z, cx + i * hw * 0.45 + 300, ht * 0.78, W);
+          quad(ctx, wl, wr, tr, tl, F('#f6cf7a'));
         }
         const dl = pt(s, base, z, cx - 260, 0, W);
         const dr = pt(s, base, z, cx + 260, 0, W);
-        const dtl = pt(s, base, z, cx - 260, 1250, W);
-        const dtr = pt(s, base, z, cx + 260, 1250, W);
-        quad(ctx, dl, dr, dtr, dtl, '#312e2b');
+        const dtl = pt(s, base, z, cx - 260, ht * 0.62, W);
+        const dtr = pt(s, base, z, cx + 260, ht * 0.62, W);
+        quad(ctx, dl, dr, dtr, dtl, F('#4a3a2e'));
+      }
+      break;
+    }
+    case 'block': {
+      // panelház: több emelet, ablakráccsal
+      const hw = o.halfW * sc;
+      const dp = o.depth * sc;
+      const floors = sp.floors || 5;
+      const ht = Math.min(o.h * sc, 1300 * floors);
+      const wall = sp.shade > 0.5 ? '#8e9196' : '#a3a099';
+      box(ctx, s, base, W, camX, z, z + dp, cx, hw, 0, ht, F(wall), { sideShade: 0.66, topShade: 1.1 });
+      if (px > 0.04) {
+        const cols = 4;
+        for (let f = 0; f < floors; f++) {
+          const y0 = 320 + (f * ht) / floors;
+          const y1 = y0 + (ht / floors) * 0.52;
+          if (y1 > ht) break;
+          for (let c = 0; c < cols; c++) {
+            const x0 = cx - hw * 0.8 + (c * hw * 1.6) / cols;
+            const x1 = x0 + (hw * 1.6) / cols - hw * 0.12;
+            const lit = (f * 7 + c * 3 + Math.round(sp.shade * 10)) % 5 < 2;
+            quad(
+              ctx,
+              pt(s, base, z, x0, y0, W),
+              pt(s, base, z, x1, y0, W),
+              pt(s, base, z, x1, y1, W),
+              pt(s, base, z, x0, y1, W),
+              F(lit ? '#f6cf7a' : '#37414f')
+            );
+          }
+        }
+      }
+      break;
+    }
+    case 'shop': {
+      const hw = o.halfW * sc;
+      const dp = o.depth * sc;
+      const ht = o.h * sc;
+      box(ctx, s, base, W, camX, z, z + dp, cx, hw, 0, ht, F('#b0a99e'), { sideShade: 0.7, topShade: 1.12 });
+      box(ctx, s, base, W, camX, z - 60, z + dp + 60, cx, hw * 1.04, ht, ht + 160, F('#6b7280'), { topShade: 1.25 });
+      if (px > 0.05) {
+        quad(
+          ctx,
+          pt(s, base, z, cx - hw * 0.75, ht * 0.62, W),
+          pt(s, base, z, cx + hw * 0.75, ht * 0.62, W),
+          pt(s, base, z, cx + hw * 0.75, ht * 0.85, W),
+          pt(s, base, z, cx - hw * 0.75, ht * 0.85, W),
+          F(sp.shade > 0.5 ? '#c2410c' : '#1d4ed8')
+        );
+        quad(
+          ctx,
+          pt(s, base, z, cx - hw * 0.8, ht * 0.1, W),
+          pt(s, base, z, cx + hw * 0.8, ht * 0.1, W),
+          pt(s, base, z, cx + hw * 0.8, ht * 0.5, W),
+          pt(s, base, z, cx - hw * 0.8, ht * 0.5, W),
+          F('#dfe6ef')
+        );
       }
       break;
     }
     case 'sign': {
       const done = sp.stop && sp.stop.done;
-      box(ctx, s, base, W, camX, z, z + o.depth, cx, o.halfW, 0, o.h, '#94a3b8');
+      box(ctx, s, base, W, camX, z, z + o.depth, cx, o.halfW, 0, o.h, F('#94a3b8'));
       box(
-        ctx,
-        s,
-        base,
-        W,
-        camX,
-        z - 30,
-        z + o.depth + 30,
-        cx,
-        o.panelW,
-        o.h,
-        o.h + o.panelH,
-        done ? '#22c55e' : '#fbbf24',
+        ctx, s, base, W, camX,
+        z - 30, z + o.depth + 30,
+        cx, o.panelW, o.h, o.h + o.panelH,
+        F(done ? '#22c55e' : '#fbbf24'),
         { topShade: 1.15, sideShade: 0.75 }
       );
       if (px > 0.05) {
-        // busz piktogram a táblán
         const y0 = o.h + o.panelH * 0.28;
         const y1 = o.h + o.panelH * 0.72;
-        const a = pt(s, base, z - 35, cx - o.panelW * 0.6, y0, W);
-        const b2 = pt(s, base, z - 35, cx + o.panelW * 0.6, y0, W);
-        const c2 = pt(s, base, z - 35, cx + o.panelW * 0.6, y1, W);
-        const d2 = pt(s, base, z - 35, cx - o.panelW * 0.6, y1, W);
-        quad(ctx, a, b2, c2, d2, '#0f172a');
+        quad(
+          ctx,
+          pt(s, base, z - 35, cx - o.panelW * 0.6, y0, W),
+          pt(s, base, z - 35, cx + o.panelW * 0.6, y0, W),
+          pt(s, base, z - 35, cx + o.panelW * 0.6, y1, W),
+          pt(s, base, z - 35, cx - o.panelW * 0.6, y1, W),
+          F('#0f172a')
+        );
       }
       break;
     }
     case 'shelter': {
       const stop = sp.stop;
-      // hátfal + oldalfal üvegből
-      box(ctx, s, base, W, camX, z, z + o.depth, cx + o.halfW * 0.86, o.halfW * 0.14, 0, o.h, '#475569');
-      box(ctx, s, base, W, camX, z, z + o.depth, cx - o.halfW * 0.86, o.halfW * 0.14, 0, o.h, '#475569');
+      box(ctx, s, base, W, camX, z, z + o.depth, cx + o.halfW * 0.86, o.halfW * 0.14, 0, o.h, F('#475569'));
+      box(ctx, s, base, W, camX, z, z + o.depth, cx - o.halfW * 0.86, o.halfW * 0.14, 0, o.h, F('#475569'));
       ctx.globalAlpha = 0.42;
-      box(ctx, s, base, W, camX, z + o.depth * 0.82, z + o.depth, cx, o.halfW * 0.9, 0, o.h, '#cbd5e1', {
+      box(ctx, s, base, W, camX, z + o.depth * 0.82, z + o.depth, cx, o.halfW * 0.9, 0, o.h, F('#cbd5e1'), {
         sideShade: 0.9,
       });
       ctx.globalAlpha = 1;
-      // padka
-      box(ctx, s, base, W, camX, z + o.depth * 0.55, z + o.depth * 0.8, cx, o.halfW * 0.8, 380, 520, '#57534e');
-      // tető
-      box(ctx, s, base, W, camX, z - 120, z + o.depth + 120, cx, o.halfW * 1.06, o.h, o.h + 130, '#334155', {
+      box(ctx, s, base, W, camX, z + o.depth * 0.55, z + o.depth * 0.8, cx, o.halfW * 0.8, 380, 520, F('#57534e'));
+      box(ctx, s, base, W, camX, z - 120, z + o.depth + 120, cx, o.halfW * 1.06, o.h, o.h + 130, F('#334155'), {
         topShade: 1.3,
       });
-      // váró utasok
       if (stop && !stop.done && stop.waiting > 0 && px > 0.05) {
         for (let i = 0; i < Math.min(stop.waiting, 5); i++) {
           const px2 = cx - o.halfW * 0.55 + i * (o.halfW * 0.28);
           const pz = z + o.depth * (0.3 + (i % 2) * 0.25);
           const col = ['#e2e8f0', '#fca5a5', '#93c5fd', '#fcd34d', '#c4b5fd'][i % 5];
-          box(ctx, s, base, W, camX, pz, pz + 220, px2, 130, 0, 950, col, { sideShade: 0.75 });
+          box(ctx, s, base, W, camX, pz, pz + 220, px2, 130, 0, 950, F(col), { sideShade: 0.75 });
           const head = pt(s, base, pz + 110, px2, 1120, W);
-          if (head) ellipse(ctx, head.x, head.y, head.scale * 150 * W * 0.5, head.scale * 150 * W * 0.5, '#d6b48c');
+          if (head) ellipse(ctx, head.x, head.y, head.scale * 150 * W * 0.5, head.scale * 150 * W * 0.5, F('#d6b48c'));
         }
       }
       break;
@@ -567,8 +680,6 @@ function drawScenery(ctx, s, base, W, camX, seg, sp, fog) {
     default:
       break;
   }
-
-  fogPatch(ctx, s, base, W, z, cx, OBJ[sp.type].halfW || 600, (OBJ[sp.type].h || 0) + (OBJ[sp.type].crownY || 0) + 900, fog);
 }
 
 /* --- járművek --- */
@@ -577,23 +688,29 @@ function drawVehicle(ctx, s, base, W, camX, car, fog) {
   const cx = car.offset * ROAD_WIDTH;
   const zN = car.z;
   const zF = car.z + v.depth;
-  if (zN - s.position < OBJ_NEAR) return;
+  if (zN - s.position < (car.oncoming ? ONCOMING_NEAR : OBJ_NEAR)) return;
   const near = pt(s, base, zN, cx, 0, W);
   if (!near) return;
   const px = near.scale * W;
-  const color = car.type === 'citybus' ? '#fbbf24' : car.color;
+  const F = (c) => fogMix(c, fog);
+  const color = F(car.type === 'citybus' ? '#fbbf24' : car.color);
+  const glass = F('#101a2b');
   const rear = !car.oncoming; // az azonos irányúaknál a hátulját látjuk
 
-  // árnyék
-  ellipse(ctx, near.x, near.y, near.scale * v.halfW * W * 1.1, near.scale * v.halfW * W * 0.22, 'rgba(2,6,23,0.3)');
+  ellipse(
+    ctx,
+    near.x,
+    near.y,
+    near.scale * v.halfW * W * 1.1,
+    near.scale * v.halfW * W * 0.22,
+    'rgba(2,6,23,' + 0.3 * fog + ')'
+  );
 
-  // kerekek
   if (px > 0.05) {
-    box(ctx, s, base, W, camX, zN + v.depth * 0.12, zN + v.depth * 0.3, cx, v.halfW * 1.02, 0, v.floor + 120, '#0f172a');
-    box(ctx, s, base, W, camX, zN + v.depth * 0.7, zN + v.depth * 0.88, cx, v.halfW * 1.02, 0, v.floor + 120, '#0f172a');
+    box(ctx, s, base, W, camX, zN + v.depth * 0.12, zN + v.depth * 0.3, cx, v.halfW * 1.02, 0, v.floor + 120, F('#1a2230'));
+    box(ctx, s, base, W, camX, zN + v.depth * 0.7, zN + v.depth * 0.88, cx, v.halfW * 1.02, 0, v.floor + 120, F('#1a2230'));
   }
 
-  // karosszéria
   const body = box(ctx, s, base, W, camX, zN, zF, cx, v.halfW, v.floor, v.floor + v.body, color, {
     sideShade: 0.66,
     topShade: 1.2,
@@ -601,69 +718,68 @@ function drawVehicle(ctx, s, base, W, camX, car, fog) {
   if (!body) return;
 
   if (car.type === 'car') {
-    // utastér
     box(
-      ctx,
-      s,
-      base,
-      W,
-      camX,
-      zN + v.depth * 0.22,
-      zN + v.depth * 0.74,
-      cx,
-      v.halfW * 0.88,
-      v.floor + v.body,
-      v.cabTop,
+      ctx, s, base, W, camX,
+      zN + v.depth * 0.22, zN + v.depth * 0.74,
+      cx, v.halfW * 0.88, v.floor + v.body, v.cabTop,
       shade(color, 0.92),
       { sideShade: 0.62, topShade: 1.25 }
     );
     if (px > 0.06) {
-      // szélvédő / hátsó ablak
-      const zw = rear ? zN + v.depth * 0.24 : zN + v.depth * 0.24;
-      const a = pt(s, base, zw, cx - v.halfW * 0.72, v.floor + v.body + 60, W);
-      const b = pt(s, base, zw, cx + v.halfW * 0.72, v.floor + v.body + 60, W);
-      const c = pt(s, base, zw, cx + v.halfW * 0.72, v.cabTop - 60, W);
-      const d = pt(s, base, zw, cx - v.halfW * 0.72, v.cabTop - 60, W);
-      quad(ctx, a, b, c, d, '#111827');
-      // oldalablak
+      const zw = zN + v.depth * 0.24;
+      quad(
+        ctx,
+        pt(s, base, zw, cx - v.halfW * 0.72, v.floor + v.body + 60, W),
+        pt(s, base, zw, cx + v.halfW * 0.72, v.floor + v.body + 60, W),
+        pt(s, base, zw, cx + v.halfW * 0.72, v.cabTop - 60, W),
+        pt(s, base, zw, cx - v.halfW * 0.72, v.cabTop - 60, W),
+        glass
+      );
       const sx = cx + (cx > camX ? -v.halfW * 0.9 : v.halfW * 0.9);
-      const e = pt(s, base, zN + v.depth * 0.3, sx, v.floor + v.body + 60, W);
-      const f = pt(s, base, zN + v.depth * 0.66, sx, v.floor + v.body + 60, W);
-      const g = pt(s, base, zN + v.depth * 0.66, sx, v.cabTop - 80, W);
-      const h = pt(s, base, zN + v.depth * 0.3, sx, v.cabTop - 80, W);
-      quad(ctx, e, f, g, h, '#0b1220');
+      quad(
+        ctx,
+        pt(s, base, zN + v.depth * 0.3, sx, v.floor + v.body + 60, W),
+        pt(s, base, zN + v.depth * 0.66, sx, v.floor + v.body + 60, W),
+        pt(s, base, zN + v.depth * 0.66, sx, v.cabTop - 80, W),
+        pt(s, base, zN + v.depth * 0.3, sx, v.cabTop - 80, W),
+        shade(glass, 0.8)
+      );
     }
   } else if (px > 0.05) {
-    // busz / teherautó ablaksáv a közeli lapon
-    const a = pt(s, base, zN - 20, cx - v.halfW * 0.85, v.floor + v.body * 0.55, W);
-    const b = pt(s, base, zN - 20, cx + v.halfW * 0.85, v.floor + v.body * 0.55, W);
-    const c = pt(s, base, zN - 20, cx + v.halfW * 0.85, v.floor + v.body * 0.88, W);
-    const d = pt(s, base, zN - 20, cx - v.halfW * 0.85, v.floor + v.body * 0.88, W);
-    quad(ctx, a, b, c, d, '#0b1220');
-    // oldalsó ablaksáv
+    quad(
+      ctx,
+      pt(s, base, zN - 20, cx - v.halfW * 0.85, v.floor + v.body * 0.55, W),
+      pt(s, base, zN - 20, cx + v.halfW * 0.85, v.floor + v.body * 0.55, W),
+      pt(s, base, zN - 20, cx + v.halfW * 0.85, v.floor + v.body * 0.88, W),
+      pt(s, base, zN - 20, cx - v.halfW * 0.85, v.floor + v.body * 0.88, W),
+      glass
+    );
     const sx = cx + (cx > camX ? -v.halfW * 1.01 : v.halfW * 1.01);
-    const e = pt(s, base, zN + v.depth * 0.1, sx, v.floor + v.body * 0.55, W);
-    const f = pt(s, base, zN + v.depth * 0.92, sx, v.floor + v.body * 0.55, W);
-    const g = pt(s, base, zN + v.depth * 0.92, sx, v.floor + v.body * 0.86, W);
-    const h = pt(s, base, zN + v.depth * 0.1, sx, v.floor + v.body * 0.86, W);
-    quad(ctx, e, f, g, h, '#0b1220');
+    quad(
+      ctx,
+      pt(s, base, zN + v.depth * 0.1, sx, v.floor + v.body * 0.55, W),
+      pt(s, base, zN + v.depth * 0.92, sx, v.floor + v.body * 0.55, W),
+      pt(s, base, zN + v.depth * 0.92, sx, v.floor + v.body * 0.86, W),
+      pt(s, base, zN + v.depth * 0.1, sx, v.floor + v.body * 0.86, W),
+      shade(glass, 0.8)
+    );
   }
 
-  // lámpák a közeli lapon
   if (px > 0.05) {
     const ly = v.floor + v.body * 0.3;
     const lh = v.floor + v.body * 0.52;
-    const col = rear ? '#ef4444' : '#fef3c7';
+    const col = F(rear ? '#ef4444' : '#fef3c7');
     [-1, 1].forEach((sgn) => {
-      const a = pt(s, base, zN - 25, cx + sgn * v.halfW * 0.55, ly, W);
-      const b = pt(s, base, zN - 25, cx + sgn * v.halfW * 0.92, ly, W);
-      const c = pt(s, base, zN - 25, cx + sgn * v.halfW * 0.92, lh, W);
-      const d = pt(s, base, zN - 25, cx + sgn * v.halfW * 0.55, lh, W);
-      quad(ctx, a, b, c, d, col);
+      quad(
+        ctx,
+        pt(s, base, zN - 25, cx + sgn * v.halfW * 0.55, ly, W),
+        pt(s, base, zN - 25, cx + sgn * v.halfW * 0.92, ly, W),
+        pt(s, base, zN - 25, cx + sgn * v.halfW * 0.92, lh, W),
+        pt(s, base, zN - 25, cx + sgn * v.halfW * 0.55, lh, W),
+        col
+      );
     });
   }
-
-  fogPatch(ctx, s, base, W, zN, cx, v.halfW, v.cabTop + 400, fog);
 }
 
 /* ============================================================
@@ -1010,15 +1126,16 @@ export default function BusSimulator() {
   const doorCmdRef = useRef(null); // 'open' | 'close'
 
   const [phase, setPhase] = useState('idle'); // idle | running | finished
+  const [routeIdx, setRouteIdx] = useState(0);
   const [hud, setHud] = useState({
     kmh: 0,
-    nextStop: STOPS[0],
+    nextStop: ROUTES[0].stops[0],
     distance: 0,
     inZone: false,
     passengers: 0,
     served: 0,
     missed: 0,
-    total: STOPS.length,
+    total: ROUTES[0].stops.length,
     score: 0,
     damage: 0,
     door: 'closed',
@@ -1029,10 +1146,12 @@ export default function BusSimulator() {
   });
   const [result, setResult] = useState(null);
 
-  const createState = useCallback(() => {
-    const track = buildTrack();
+  const createState = useCallback((idx) => {
+    const route = ROUTES[idx];
+    const track = buildTrack(route);
     return {
       ...track,
+      route,
       cars: buildTraffic(track.trackLength),
       position: 0,
       speed: 0,
@@ -1209,11 +1328,13 @@ export default function BusSimulator() {
           if (!o || !o.hit) continue;
           const objZ = s.segments[i].p1.world.z;
           if (!(objZ - BUS_LENGTH < s.position && objZ + o.depth + BUS_LENGTH > s.position)) continue;
-          if (Math.abs(sp.offset * ROAD_WIDTH - s.playerX * ROAD_WIDTH) < o.hit + BUS_HALF) {
+          if (Math.abs(sp.offset * ROAD_WIDTH - s.playerX * ROAD_WIDTH) < o.hit * (sp.scale || 1) + BUS_HALF) {
             const names = {
               tree: 'FÁNAK MENTÉL!',
               lamp: 'LÁMPAOSZLOPNAK MENTÉL!',
               house: 'HÁZNAK MENTÉL!',
+              block: 'PANELHÁZNAK MENTÉL!',
+              shop: 'ÜZLETNEK MENTÉL!',
               sign: 'LEDÖNTÖTTED A MEGÁLLÓTÁBLÁT!',
               shelter: 'BELEHAJTOTTÁL A MEGÁLLÓBA!',
             };
@@ -1234,7 +1355,7 @@ export default function BusSimulator() {
         s.doorState = 'open';
         const stop = s.stops[s.nextStopIndex];
         const inZone = stop && s.position >= stop.zStart && s.position <= stop.zEnd;
-        const pulledOver = s.playerX > 0.45 && s.playerX < 1.05;
+        const pulledOver = s.playerX > 0.55 && s.playerX < 1.08;
         if (inZone && pulledOver && !s.exchange) {
           const alight = Math.min(s.passengers, Math.floor(s.rnd() * 4));
           s.exchange = {
@@ -1476,6 +1597,7 @@ export default function BusSimulator() {
           time: s.time,
           damage: s.damage,
           wrecked: s.wrecked,
+          route: s.route,
         });
         setPhase('finished');
       }
@@ -1550,10 +1672,11 @@ export default function BusSimulator() {
     };
   }, []);
 
-  const startGame = () => {
+  const startGame = (idx = routeIdx) => {
     keysRef.current = { gas: false, brake: false, left: false, right: false };
     doorCmdRef.current = null;
-    stateRef.current = createState();
+    setRouteIdx(idx);
+    stateRef.current = createState(idx);
     setResult(null);
     setPhase('running');
   };
@@ -1707,11 +1830,30 @@ export default function BusSimulator() {
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/90 px-6 text-center">
             {phase === 'idle' && (
               <>
-                <h2 className="mb-2 text-2xl font-bold text-yellow-500 sm:text-3xl">MŰSZAK KEZDÉS</h2>
-                <p className="mb-2 max-w-md text-sm text-slate-300 sm:text-base">
-                  Vezesd végig a járatot a térkép szerint, és szolgáld ki mind a {STOPS.length} megállót!
-                </p>
-                <ol className="mb-6 max-w-md list-inside list-decimal text-left text-xs text-slate-500">
+                <h2 className="mb-1 text-2xl font-bold text-yellow-500 sm:text-3xl">MŰSZAK KEZDÉS</h2>
+                <p className="mb-3 text-xs text-slate-400 sm:text-sm">Válassz járatot:</p>
+
+                <div className="mb-4 flex w-full max-w-2xl flex-col gap-2 sm:flex-row">
+                  {ROUTES.map((r, i) => (
+                    <button
+                      key={r.id}
+                      onClick={() => setRouteIdx(i)}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-left transition ${
+                        routeIdx === i
+                          ? 'border-yellow-500 bg-yellow-500/15'
+                          : 'border-slate-700 bg-slate-900/70 hover:border-slate-500'
+                      }`}
+                    >
+                      <div className="font-bold text-yellow-500">
+                        {r.name} <span className="text-white">· {r.subtitle}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-400">{r.stops.length} megálló</div>
+                      <div className="hidden text-[11px] text-slate-500 sm:block">{r.desc}</div>
+                    </button>
+                  ))}
+                </div>
+
+                <ol className="mb-5 max-w-md list-inside list-decimal text-left text-[11px] text-slate-500 sm:text-xs">
                   <li>Húzódj a jobb oldali sárga öbölbe és állj meg teljesen.</li>
                   <li>Nyisd ki az ajtót (AJTÓ NYIT gomb vagy O billentyű).</li>
                   <li>Várd meg, míg mindenki le- és felszállt.</li>
@@ -1726,6 +1868,9 @@ export default function BusSimulator() {
                 <h2 className={`mb-2 text-2xl font-bold sm:text-3xl ${result.wrecked ? 'text-red-500' : 'text-yellow-500'}`}>
                   {result.wrecked ? 'BALESET' : 'VÉGÁLLOMÁS'}
                 </h2>
+                <p className="mb-1 font-mono text-xs text-slate-400">
+                  {result.route ? `${result.route.name} · ${result.route.subtitle}` : ''}
+                </p>
                 <p className="mb-4 text-lg font-bold uppercase tracking-widest text-white">{grade(result)}</p>
                 <div className="mb-6 grid grid-cols-2 gap-x-8 gap-y-1 font-mono text-sm text-slate-300">
                   <span className="text-left text-slate-500">Megállók:</span>
@@ -1748,12 +1893,22 @@ export default function BusSimulator() {
               </>
             )}
 
-            <button
-              onClick={startGame}
-              className="rounded-full bg-yellow-500 px-8 py-3 font-bold text-slate-950 transition hover:bg-yellow-400"
-            >
-              {phase === 'finished' ? 'ÚJ MŰSZAK' : 'INDULÁS'}
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={() => startGame()}
+                className="rounded-full bg-yellow-500 px-8 py-3 font-bold text-slate-950 transition hover:bg-yellow-400"
+              >
+                {phase === 'finished' ? 'ÚJRA' : 'INDULÁS'}
+              </button>
+              {phase === 'finished' && (
+                <button
+                  onClick={() => setPhase('idle')}
+                  className="rounded-full border border-slate-600 px-6 py-3 font-bold text-slate-300 transition hover:border-yellow-500 hover:text-yellow-500"
+                >
+                  MÁSIK JÁRAT
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
