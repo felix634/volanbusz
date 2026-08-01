@@ -1,0 +1,31 @@
+---
+// src/pages/simulator.astro
+import Layout from '../layouts/Layout.astro';
+import BusSimulator from '../components/BusSimulator.jsx';
+---
+
+<Layout title="Volánbusz Szimulátor - Járatvezetés">
+  <main class="min-h-screen w-full flex flex-col justify-center items-center bg-slate-950 relative py-20 px-4">
+
+    <a href="/" class="absolute top-4 left-4 text-yellow-500 flex items-center gap-2 hover:underline z-20">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+          </svg>
+        Vissza a telephelyre
+    </a>
+
+    <a href="/game" class="absolute top-4 right-4 text-slate-400 hover:text-yellow-500 text-sm z-20 hover:underline">
+        Ugrálós játék &rarr;
+    </a>
+
+    <h1 class="text-3xl md:text-5xl font-bold text-yellow-500 mb-2 uppercase tracking-widest text-center">
+        Járatvezetés
+    </h1>
+    <p class="text-slate-500 mb-8 text-sm text-center max-w-lg">
+        Te vagy a sofőr. Tartsd az útvonalat, és állj meg minden megállóban!
+    </p>
+
+    <BusSimulator client:only="react" />
+
+  </main>
+</Layout>
