@@ -1,4 +1,6 @@
-// src/components/BusSimulator.jsx
+'use client';
+
+// src/components/games/BusSimulator.jsx
 // Busz szimulátor sofőr szemszögből (pszeudo-3D canvas):
 // széles út, térbeli (dobozokból épített) díszlet és forgalom,
 // ütközés + sérülés, útvonaltérkép, ajtókezelés és utascsere.
@@ -1716,7 +1718,7 @@ export default function BusSimulator() {
 
   return (
     <div ref={wrapRef} className="relative w-full max-w-5xl select-none">
-      <div className="relative overflow-hidden rounded-lg border-4 border-slate-800 bg-slate-950">
+      <div className="relative overflow-hidden rounded-2xl border border-line bg-slate-950 shadow-[0_40px_120px_-40px_rgba(255,208,0,0.25)]">
         <canvas ref={canvasRef} className="block w-full touch-none" />
 
         {/* --- HUD --- */}

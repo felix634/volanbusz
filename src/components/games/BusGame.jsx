@@ -1,4 +1,6 @@
-// src/components/BusGame.jsx
+'use client';
+
+// src/components/games/BusGame.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 export default function BusGame() {
@@ -81,26 +83,26 @@ export default function BusGame() {
 
   return (
     <div 
-        className="relative w-full max-w-2xl h-64 border-b-4 border-slate-700 bg-slate-900/50 overflow-hidden touch-none select-none" 
+        className="relative w-full max-w-2xl h-64 rounded-t-2xl border border-b-4 border-line border-b-signal bg-ink-2/80 overflow-hidden touch-none select-none shadow-[0_40px_120px_-40px_rgba(255,208,0,0.25)]" 
         onClick={jump}
     >
-      <div className="absolute top-2 right-4 text-yellow-500 font-mono text-xl z-10">
+      <div className="absolute top-3 right-4 text-signal font-mono text-xl tabular-nums z-10">
         Score: {score.toString().padStart(4, '0')}
       </div>
 
       {(!isGameRunning || isGameOver) && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 z-20 text-white">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-ink/85 backdrop-blur-sm z-20 text-paper">
           {isGameOver ? (
             <>
-              <h2 className="text-3xl font-bold text-red-500 mb-2">A JÁRAT KISIKLOTT!</h2>
-              <p className="mb-4">Végső pontszám: {score}</p>
+              <h2 className="text-3xl font-black text-fail mb-2 tracking-tight [font-stretch:120%]">A JÁRAT KISIKLOTT!</h2>
+              <p className="mb-5 font-mono text-sm text-paper/70">Végső pontszám: {score}</p>
             </>
           ) : (
-            <p className="text-xl mb-4">Készen állsz a műszakra?</p>
+            <p className="text-xl font-bold mb-5">Készen állsz a műszakra?</p>
           )}
           <button 
             onClick={startGame}
-            className="px-6 py-2 bg-yellow-500 text-slate-950 font-bold rounded-full hover:bg-yellow-400"
+            className="px-8 py-3 bg-signal text-ink font-black tracking-[0.15em] rounded-full hover:bg-paper transition-colors active:scale-95"
           >
             {isGameOver ? 'ÚJRAINDÍTÁS' : 'INDÍTÁS'}
           </button>
