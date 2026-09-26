@@ -16,8 +16,8 @@ A baráti társaság hivatalos oldala – Next.js (App Router) + Tailwind CSS 4 
 | :-------------- | :--------------------------------------------- |
 | `npm install`   | Függőségek telepítése                          |
 | `npm run dev`   | Fejlesztői szerver: `http://localhost:3000`    |
-| `npm run build` | Éles build a `.next/` mappába                  |
-| `npm start`     | Az éles build futtatása                        |
+| `npm run build` | Statikus export az `out/` mappába (ezt publikálja a Netlify) |
+| `npm start`     | Az `out/` mappa helyi kiszolgálása             |
 
 ## Szerkezet
 

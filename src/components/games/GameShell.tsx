@@ -27,7 +27,7 @@ export default function GameShell({ kicker, title, lead, cross, children, fixedH
       <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-[radial-gradient(ellipse_at_bottom,rgba(255,208,0,0.1),transparent_70%)]" />
 
       <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-4 px-4 py-4 sm:px-8">
-        <Link href="/" className="group flex items-center gap-3 text-signal">
+        <Link href="/" prefetch={false} className="group flex items-center gap-3 text-signal">
           <span className="grid h-9 w-9 place-items-center rounded-full border border-signal/40 transition-colors group-hover:bg-signal group-hover:text-ink">
             <ArrowLeft className="h-5 w-5" />
           </span>
@@ -35,6 +35,7 @@ export default function GameShell({ kicker, title, lead, cross, children, fixedH
         </Link>
         <Link
           href={cross.href}
+          prefetch={false}
           className="font-mono text-[11px] uppercase tracking-[0.18em] text-paper/50 transition-colors hover:text-signal"
         >
           {cross.label} &rarr;

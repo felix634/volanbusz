@@ -56,6 +56,7 @@ function RouteTile({
   return (
     <Link
       href={href}
+      prefetch={false}
       title={title}
       data-cursor="Beszállás"
       className="group relative flex min-h-[190px] flex-col justify-between overflow-hidden rounded-[22px] border border-line bg-ink-2 p-6 transition-colors duration-500 hover:border-signal sm:min-h-[240px] sm:p-8"

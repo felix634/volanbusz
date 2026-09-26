@@ -1,7 +1,7 @@
-# Netlify: Next.js build (a Next.js runtime-ot a Netlify automatikusan használja)
+# Netlify: statikus Next.js export (next.config.ts -> output: 'export')
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = "out"
 
 [build.environment]
   NODE_VERSION = "22"
