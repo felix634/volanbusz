@@ -1,0 +1,7 @@
+# Netlify: Next.js build (a Next.js runtime-ot a Netlify automatikusan használja)
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
